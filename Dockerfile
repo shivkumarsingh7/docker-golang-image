@@ -1,16 +1,13 @@
-# Telling to use Docker's golang ready image
-FROM golang
-# Name and Email of the author
-MAINTAINER Shiv Kumar Singh <shivam.developer7@gmail.com>
-# Create app folder
-RUN mkdir /app
-# Copy our file in the host contianer to our contianer
-ADD . /app
-# Set /app to the go folder as workdir
-WORKDIR /app
-# Generate binary file from our /app
-RUN go build
-# Expose the port 3000
-EXPOSE 8080:8080
-# Run the app binarry file
-CMD ["./app"]
+FROM golang:alpine AS build
+RUN apk --no-cache add gcc g++ make git
+WORKDIR /go/src/app
+COPY . .
+RUN go get ./...
+RUN GOOS=linux go build -ldflags="-s -w" -o ./bin/web-app ./app.go
+
+FROM alpine:3.9
+RUN apk --no-cache add ca-certificates
+WORKDIR /usr/bin
+COPY --from=build /go/src/app/bin /go/bin
+EXPOSE 80
+ENTRYPOINT /go/bin/web-app --port 80
